@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocabulary Randomizer</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f5f5f5;
+        color: #222;
+    }
+
+    header {
+        text-align: center;
+        padding: 30px 20px 20px;
+    }
+
+    h1 {
+        margin: 0 0 10px;
+    }
+
+    .subtitle {
+        color: #666;
+    }
+
+    .container {
+        width: min(900px, 90%);
+        margin: auto;
+    }
+
+    input[type="file"] {
+        display: none;
+    }
+
+    .button {
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+    }
+
+    .primary {
+        background: #222;
+        color: white;
+    }
+
+    .button:hover {
+        opacity: .8;
+    }
+
+    .status {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        text-align: center;
+        margin: 15px 0;
+        color: #666;
+    }
+
+    .status-separator {
+        color: #aaa;
+    }
+
+    .words-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .word-card {
+        background: white;
+        padding: 22px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 18px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        transition: transform .15s, background .15s;
+        word-break: break-word;
+        white-space: pre-wrap;
+    }
+
+    .word-card:hover {
+        transform: translateY(-3px);
+        background: #f0f0f0;
+    }
+
+    .word-card.selected {
+        background: #DFF3FF;
+    }
+
+    .next-section {
+        text-align: center;
+        margin: 30px 0;
+    }
+
+    .difficult-section {
+        margin-top: 40px;
+        padding-bottom: 20px;
+    }
+
+    .difficult-section h2 {
+        text-align: center;
+    }
+
+    .difficult-list {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        min-height: 60px;
+    }
+
+    .difficult-word {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        white-space: pre-wrap;
+    }
+
+    .difficult-word:last-child {
+        border-bottom: none;
+    }
+
+    .empty {
+        text-align: center;
+        color: #999;
+        padding: 15px;
+    }
+
+    .hint {
+        text-align: center;
+        font-size: 14px;
+        color: #777;
+        margin-top: 8px;
+    }
+
+    .upload-section {
+        text-align: center;
+        margin: 40px 0;
+        padding-bottom: 30px;
+    }
+
+    .page-navigation {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 10px auto 25px;
+    }
+
+    .page-button {
+        border: none;
+        background: #ddd;
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .page-button.active {
+        background: #222;
+        color: white;
+    }
+
+    .page-name-section {
+        text-align: center;
+        margin: 40px 0 20px;
+    }
+
+    .page-name-input {
+        width: min(500px, 90%);
+        padding: 10px 12px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .daily-progress {
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+        margin: 18px 0 8px;
+    }
+
+    .download-section {
+        text-align: center;
+        margin: 20px 0 10px;
+    }
+
+    .mode-section {
+        text-align: center;
+        margin: 20px 0 10px;
+    }
+
+    .mode-button {
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 5px;
+        background: #444;
+        color: white;
+        min-width: 160px;
+    }
+
+    .mode-button:hover {
+        opacity: .8;
+    }
+
+    @media (max-width: 600px) {
+        .words-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .word-card {
+            font-size: 17px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1 id="pageTitle">Vocabulary Randomizer</h1>
+
+    <div class="subtitle">
+        Six random words at a time. Words will not appear again once shown.
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="page-navigation" id="pageNavigation"></div>
+
+    <div class="status" id="status">
+        <span id="remainingStatus">No vocabulary file loaded.</span>
+        <span class="status-separator"> : </span>
+        <span id="dailyProgress">Today: 0 / 200</span>
+    </div>
+
+    <div class="words-grid" id="wordsGrid"></div>
+
+    <div class="next-section">
+        <button class="button primary" id="nextButton">
+            Show Next 6
+        </button>
+
+        <div class="hint">
+            Tap a word to add or remove it from Difficult Words.
+        </div>
+    </div>
+
+    <div class="difficult-section">
+        <h2>Difficult Words</h2>
+
+        <div class="hint">
+            Words in this list cannot be changed by tapping them here.
+        </div>
+
+        <div class="difficult-list" id="difficultList"></div>
+    </div>
+
+    <div class="page-name-section">
+        <input
+            type="text"
+            id="pageNameInput"
+            class="page-name-input"
+            placeholder="Page name"
+        >
+    </div>
+
+    <div class="download-section">
+        <button class="button primary" id="downloadButton">
+            📥 Download Difficult Words
+        </button>
+    </div>
+
+    <div class="mode-section">
+        <button class="mode-button" id="modeButton">
+            Mode: memo
+        </button>
+        <div class="hint">
+            memo: KeepNotes　/　book:  ()付き整列
+        </div>
+    </div>
+
+    <div class="upload-section">
+        <label for="fileInput" class="button primary">
+            ❗ Import Vocabulary File
+        </label>
+
+        <input
+            type="file"
+            id="fileInput"
+            accept=".txt"
+        >
+
+        <div class="hint">
+            Importing a new file will replace your current vocabulary.
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const TOTAL_PAGES = 7;
+const STORAGE_PREFIX = "vocabularyRandomizerRepo2_";
+
+let currentPage =
+    Number(localStorage.getItem(STORAGE_PREFIX + "currentPage")) || 1;
+
+let pageNames =
+    JSON.parse(localStorage.getItem(STORAGE_PREFIX + "pageNames")) || {};
+
+for (let i = 1; i <= TOTAL_PAGES; i++) {
+    if (!pageNames[i]) {
+        pageNames[i] =
+            i === 1
+                ? "Vocabulary Randomizer"
+                : `Vocabulary Page ${i}`;
+    }
+}
+
+localStorage.setItem(
+    STORAGE_PREFIX + "pageNames",
+    JSON.stringify(pageNames)
+);
+
+function storageKey(type) {
+    return `${STORAGE_PREFIX}page${currentPage}_${type}`;
+}
+
+const fileInput = document.getElementById("fileInput");
+const wordsGrid = document.getElementById("wordsGrid");
+const difficultList = document.getElementById("difficultList");
+const nextButton = document.getElementById("nextButton");
+const status = document.getElementById("status");
+const remainingStatus = document.getElementById("remainingStatus");
+const pageTitle = document.getElementById("pageTitle");
+const pageNameInput = document.getElementById("pageNameInput");
+const pageNavigation = document.getElementById("pageNavigation");
+const downloadButton = document.getElementById("downloadButton");
+const modeButton = document.getElementById("modeButton");
+const dailyProgress = document.getElementById("dailyProgress");
+
+let remainingWords = [];
+let difficultWords = [];
+let currentWords = [];
+let totalWords = 0;
+let pageModes = JSON.parse(
+    localStorage.getItem(STORAGE_PREFIX + "pageModes")
+) || {};
+
+function getPageMode(page) {
+    if (pageModes[page] === "book" || pageModes[page] === "memo") {
+        return pageModes[page];
+    }
+    return "memo";
+}
+
+function setPageMode(page, mode) {
+    pageModes[page] = mode;
+    localStorage.setItem(
+        STORAGE_PREFIX + "pageModes",
+        JSON.stringify(pageModes)
+    );
+}
+
+function loadPageData() {
+    remainingWords =
+        JSON.parse(
+            localStorage.getItem(storageKey("remainingWords"))
+        ) || [];
+
+    currentWords =
+        JSON.parse(
+            localStorage.getItem(storageKey("currentWords"))
+        ) || [];
+
+    difficultWords =
+        JSON.parse(
+            localStorage.getItem(storageKey("difficultWords"))
+        ) || [];
+
+    totalWords = Number(
+        localStorage.getItem(storageKey("totalWords"))
+    ) || 0;
+
+    if (
+        totalWords === 0 &&
+        (remainingWords.length + currentWords.length > 0)
+    ) {
+        totalWords = remainingWords.length + currentWords.length;
+        localStorage.setItem(
+            storageKey("totalWords"),
+            String(totalWords)
+        );
+    }
+}
+
+function savePageData() {
+    localStorage.setItem(
+        storageKey("remainingWords"),
+        JSON.stringify(remainingWords)
+    );
+
+    localStorage.setItem(
+        storageKey("currentWords"),
+        JSON.stringify(currentWords)
+    );
+
+    localStorage.setItem(
+        storageKey("difficultWords"),
+        JSON.stringify(difficultWords)
+    );
+
+    localStorage.setItem(
+        storageKey("totalWords"),
+        String(totalWords)
+    );
+}
+
+function shuffle(array) {
+    const newArray = [...array];
+
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [newArray[i], newArray[j]] = [
+            newArray[j],
+            newArray[i]
+        ];
+    }
+
+    return newArray;
+}
+
+function formatWordForMode(word, mode) {
+    if (mode === "memo") {
+        const match = word.match(/^(.+?)\s{2,}(.+)$/);
+        if (match) {
+            return match[1].trim() + "     " + match[2].trim();
+        }
+        return word;
+    }
+
+    if (mode === "book") {
+        const match = word.match(/^(.+?)\s+\((.+)\)$/);
+        if (match) {
+            return match[1].trim() + "        (" + match[2].trim() + ")";
+        }
+        return word;
+    }
+
+    return word;
+}
+
+function applyModeToWords(words, mode) {
+    return words.map(word => formatWordForMode(word, mode));
+}
+
+function reformatAllWordsForCurrentMode() {
+    const mode = getPageMode(currentPage);
+    remainingWords = applyModeToWords(remainingWords, mode);
+    currentWords = applyModeToWords(currentWords, mode);
+    difficultWords = applyModeToWords(difficultWords, mode);
+    savePageData();
+}
+
+function updateModeButton() {
+    const mode = getPageMode(currentPage);
+    modeButton.textContent = "Mode: " + mode;
+}
+
+function renderPageNavigation() {
+    pageNavigation.innerHTML = "";
+
+    for (let i = 1; i <= TOTAL_PAGES; i++) {
+        const button = document.createElement("button");
+
+        button.className = "page-button";
+
+        if (i === currentPage) {
+            button.classList.add("active");
+        }
+
+        button.textContent = pageNames[i];
+
+        button.addEventListener("click", function () {
+            switchPage(i);
+        });
+
+        pageNavigation.appendChild(button);
+    }
+}
+
+function switchPage(page) {
+    currentPage = page;
+
+    localStorage.setItem(
+        STORAGE_PREFIX + "currentPage",
+        currentPage
+    );
+
+    loadPageData();
+
+    pageNameInput.value = pageNames[currentPage];
+    pageTitle.textContent = pageNames[currentPage];
+
+    updateModeButton();
+    renderPageNavigation();
+    renderCurrentWords();
+    renderDifficultWords();
+    updateStatus();
+}
+
+pageNameInput.addEventListener("input", function () {
+    let name = pageNameInput.value.trim();
+
+    if (name === "") {
+        name =
+            currentPage === 1
+                ? "Vocabulary Randomizer"
+                : `Vocabulary Page ${currentPage}`;
+    }
+
+    pageNames[currentPage] = name;
+
+    localStorage.setItem(
+        STORAGE_PREFIX + "pageNames",
+        JSON.stringify(pageNames)
+    );
+
+    pageTitle.textContent = name;
+    renderPageNavigation();
+});
+
+fileInput.addEventListener("change", function (event) {
+    const file = event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        const text = e.target.result;
+
+        let words = text
+            .split(/\r?\n/)
+            .map(word => word.trim())
+            .filter(word => word.length > 0);
+
+        const mode = getPageMode(currentPage);
+        words = applyModeToWords(words, mode);
+
+        remainingWords = shuffle(words);
+        currentWords = [];
+        difficultWords = [];
+        totalWords = words.length;
+
+        savePageData();
+        showNextSix();
+        renderDifficultWords();
+
+        event.target.value = "";
+    };
+
+    reader.readAsText(file);
+});
+
+function getTodayKey() {
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    return `${STORAGE_PREFIX}dailyWords_${date}`;
+}
+
+function getTodayWordCount() {
+    return Number(localStorage.getItem(getTodayKey())) || 0;
+}
+
+function updateDailyProgress() {
+    const count = getTodayWordCount();
+    dailyProgress.textContent = count >= 200
+        ? `Today: ${count} / 200 — Done!`
+        : `Today: ${count} / 200`;
+}
+
+function countShowNext() {
+    localStorage.setItem(
+        getTodayKey(),
+        String(getTodayWordCount() + 6)
+    );
+    updateDailyProgress();
+}
+
+function showNextSix() {
+    if (remainingWords.length === 0) {
+        currentWords = [];
+        savePageData();
+
+        wordsGrid.innerHTML =
+            `<div class="empty">No more words remaining.</div>`;
+
+        updateStatus();
+        return;
+    }
+
+    currentWords = remainingWords.splice(0, 6);
+
+    savePageData();
+    renderCurrentWords();
+    updateStatus();
+}
+
+function renderCurrentWords() {
+    wordsGrid.innerHTML = "";
+
+    if (currentWords.length === 0) {
+        wordsGrid.innerHTML =
+            `<div class="empty">Import a vocabulary file to begin.</div>`;
+
+        return;
+    }
+
+    currentWords.forEach(word => {
+        const card = document.createElement("div");
+
+        card.className = "word-card";
+
+        if (difficultWords.includes(word)) {
+            card.classList.add("selected");
+        }
+
+        card.textContent = word;
+
+        card.addEventListener("click", function () {
+            toggleDifficultWord(word);
+            card.classList.toggle("selected");
+        });
+
+        wordsGrid.appendChild(card);
+    });
+}
+
+function toggleDifficultWord(word) {
+    if (difficultWords.includes(word)) {
+        difficultWords = difficultWords.filter(item => item !== word);
+    } else {
+        difficultWords.push(word);
+    }
+
+    savePageData();
+    renderDifficultWords();
+}
+
+function renderDifficultWords() {
+    difficultList.innerHTML = "";
+
+    if (difficultWords.length === 0) {
+        difficultList.innerHTML =
+            `<div class="empty">No difficult words yet.</div>`;
+
+        return;
+    }
+
+    difficultWords.forEach(word => {
+        const item = document.createElement("div");
+
+        item.className = "difficult-word";
+        item.textContent = word;
+
+        difficultList.appendChild(item);
+    });
+}
+
+function updateStatus() {
+    if (
+        remainingWords.length === 0 &&
+        currentWords.length === 0
+    ) {
+        remainingStatus.textContent = "No vocabulary file loaded.";
+    } else {
+        remainingStatus.textContent =
+            `${remainingWords.length}/${totalWords} remaining`;
+    }
+
+    updateDailyProgress();
+}
+
+function downloadDifficultWords() {
+    if (difficultWords.length === 0) {
+        return;
+    }
+
+    const content = difficultWords.join("\n");
+    const blob = new Blob(
+        [content],
+        { type: "text/plain;charset=utf-8" }
+    );
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+
+    const safeName = (pageNames[currentPage] || "difficult_words")
+        .replace(/[\\/:*?"<>|]/g, "_")
+        .trim() || "difficult_words";
+
+    a.download = `${safeName}_difficult.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+modeButton.addEventListener("click", function () {
+    const currentMode = getPageMode(currentPage);
+    const newMode = currentMode === "memo" ? "book" : "memo";
+
+    setPageMode(currentPage, newMode);
+    updateModeButton();
+    reformatAllWordsForCurrentMode();
+    renderCurrentWords();
+    renderDifficultWords();
+});
+
+nextButton.addEventListener("click", function () {
+    if (remainingWords.length > 0) {
+        countShowNext();
+    }
+
+    showNextSix();
+});
+
+downloadButton.addEventListener("click", function () {
+    downloadDifficultWords();
+});
+
+loadPageData();
+
+pageNameInput.value = pageNames[currentPage];
+pageTitle.textContent = pageNames[currentPage];
+
+updateModeButton();
+renderPageNavigation();
+renderCurrentWords();
+renderDifficultWords();
+updateStatus();
+updateDailyProgress();
+
+</script>
+
+</body>
+</html>
